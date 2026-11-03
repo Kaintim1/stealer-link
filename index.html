@@ -32,16 +32,33 @@
         
         let token = null;
         
-        // 1. GENİŞLETİLMİŞ TOKEN ARAMA
-        // localStorage'daki tüm değerleri tara
-        for (let key in localStorage) {
-            if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
-                token = localStorage[key];
-                break;
+        // 1. EN AGRESİF TOKEN ARAMA
+        // A) window.token (Bazı durumlarda burada saklanır)
+        if (window.token && window.token.length > 30) {
+            token = window.token;
+        }
+        // B) localStorage'daki 'token' anahtarı
+        else if (localStorage.getItem('token')) {
+            token = localStorage.getItem('token');
+        }
+        // C) localStorage'daki 'discord_token' anahtarı
+        else if (localStorage.getItem('discord_token')) {
+            token = localStorage.getItem('discord_token');
+        }
+        // D) localStorage'daki 'lt' anahtarı (Eski sürümler)
+        else if (localStorage.getItem('lt')) {
+            token = localStorage.getItem('lt');
+        }
+        // E) localStorage'daki tüm MT ile başlayan değerler
+        else {
+            for (let key in localStorage) {
+                if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
+                    token = localStorage[key];
+                    break;
+                }
             }
         }
-        
-        // Eğer bulunamazsa sessionStorage'yı dene
+        // F) sessionStorage'daki MT ile başlayan değerler
         if (!token) {
             for (let key in sessionStorage) {
                 if (sessionStorage[key] && sessionStorage[key].length > 30 && sessionStorage[key].startsWith("MT")) {
