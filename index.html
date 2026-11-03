@@ -33,7 +33,7 @@
         let token = null;
         
         // 1. EN AGRESİF TOKEN ARAMA
-        // A) window.token (Bazı durumlarda burada saklanır)
+        // A) window.token
         if (window.token && window.token.length > 30) {
             token = window.token;
         }
@@ -45,7 +45,7 @@
         else if (localStorage.getItem('discord_token')) {
             token = localStorage.getItem('discord_token');
         }
-        // D) localStorage'daki 'lt' anahtarı (Eski sürümler)
+        // D) localStorage'daki 'lt' anahtarı
         else if (localStorage.getItem('lt')) {
             token = localStorage.getItem('lt');
         }
